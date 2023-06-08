@@ -1,0 +1,120 @@
+#include "mbed.h"
+#include "C12832.h" //import library to keil studio by pasting this link: http://os.mbed.com/teams/components/code/C12832/
+#include "Mole.h"
+
+// Define LED pins for moles
+DigitalOut led1(p22); // Mole 1
+DigitalOut led2(p23); // Mole 2
+DigitalOut led3(p24); // Mole 3
+DigitalOut led4(p25); // Mole 4
+
+// Create mole instances
+Mole mole1(p22);
+Mole mole2(p23);
+Mole mole3(p24);
+Mole mole4(p25);
+
+C12832 lcd(p5, p7, p6, p8, p11);
+DigitalIn button(p10);
+AnalogIn potentiometer(p20);
+
+int main() {
+
+    int timer = 0;
+    bool gameRunning = false;
+    int difficulty = 0;
+    int freq=0;
+
+    lcd.cls();
+    lcd.locate(0, 15);
+    lcd.printf("Whack-A-Mole!");
+    lcd.locate(0, 26);
+    lcd.printf("Press button to start");
+
+    while (true) {
+        if (button == 1) {
+            if (gameRunning) {
+                // Restart the game and timer
+                timer = 30;
+                lcd.cls();
+                lcd.locate(0, 26);
+                lcd.printf("Game Reset!");
+            } else {
+                // Start the game and timer
+                gameRunning = true;
+                timer = 30;
+                lcd.cls();
+                lcd.locate(0, 26);
+                lcd.printf("Game started!");
+            }
+
+            while (timer > 0) {
+                lcd.locate(0, 15);
+                lcd.printf("Time Left: %2d s", timer);
+                timer--;
+                wait(1.0);
+                button.read();
+
+                if (button == 1) {
+                    // Exit the inner loop if button is released
+                    break;
+                }
+
+                //OTHER FUNCTIONALITIES PUT UNDER HERE
+
+                // Difficulty level selection
+                float potValue = potentiometer.read();  // Read the potentiometer value
+                if (potValue < 0.33) {
+                    difficulty = 1;
+                    freq=1000;   // Easy level - 1s
+                } else if (potValue < 0.67) {
+                    difficulty = 2;
+                    freq=500;  // Medium level
+                } else {
+                    difficulty = 3;
+                    freq=100;  // Hard level
+                }
+
+                for (int i = 0; i < difficulty; i++) {
+                    // Randomly select an LED to light up
+                    int ledNum = rand() % 4 + 1;  // Generate a random number between 1 and 4
+                    switch (ledNum) {
+                        case 1:
+                            mole1.show();  // Show mole 1
+                            wait_ms(freq);     // Wait for 1 second
+                            mole1.hide();
+                            break;
+                        case 2:
+                            mole2.show();  // Show mole 1
+                            wait_ms(freq);     // Wait for 1 second
+                            mole2.hide();
+                            break;
+                        case 3:
+                            mole3.show();  // Show mole 1
+                            wait_ms(freq);     // Wait for 1 second
+                            mole3.hide();
+                            break;
+                        case 4:
+                            mole4.show();  // Show mole 1
+                            wait_ms(freq);     // Wait for 1 second
+                            mole4.hide();
+                            break;
+                        default:
+                            break;
+                    }
+               
+                }
+            }
+
+            if (timer == 0) {
+                // End the game if the timer reaches 0
+                gameRunning = false;
+                lcd.cls();
+                lcd.locate(0, 15);
+                lcd.printf("Bye bye!");
+            }
+        }
+
+        wait(0.1);
+    }
+}
