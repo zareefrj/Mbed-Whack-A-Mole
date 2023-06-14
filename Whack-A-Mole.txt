@@ -462,7 +462,7 @@ int main()
 
             playMusic = false; // Set the flag to stop playing music
             terminateMusic = true; // Set the flag to terminate music thread
-            musicThread.join(); // Wait for the music thread to terminate
+            musicThread.terminate(); // Wait for the music thread to terminate
 
             gameRunning = false;
             lcd.cls();
