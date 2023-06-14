@@ -1,0 +1,478 @@
+#include "mbed.h"
+#include "C12832.h"
+#include "Mole.h"
+#include "Ticker.h"
+#include "rtos.h"
+
+// Define LED pins for moles
+DigitalOut led1(p22); // Mole 1
+DigitalOut led2(p23); // Mole 2
+DigitalOut led3(p24); // Mole 3
+DigitalOut led4(p25); // Mole 4
+
+// Create mole instances
+Mole mole1(p22);
+Mole mole2(p23);
+Mole mole3(p24);
+Mole mole4(p25);
+
+C12832 lcd(p5, p7, p6, p8, p11);
+DigitalIn button(p10);
+AnalogIn potentiometer(p19);
+
+// Joystick pins
+DigitalIn joystickDown(p12);
+DigitalIn joystickLeft(p13);
+DigitalIn joystickUp(p15);
+DigitalIn joystickRight(p16);
+
+// Define buzzer pin
+PwmOut buzzer(p21);
+PwmOut speaker(p26);
+
+//Define 7-segment display
+BusOut Seg1(p9, p14, p17, p20, p18, p27, p28, p29); // A, B, C, D, E, F, G, DP
+
+char SegConvert(char SegValue); // Function prototype
+
+// Define notes frequencies
+#define NOTE_C4 261.63
+#define NOTE_D4 293.66
+#define NOTE_E4 329.63
+#define NOTE_F4 349.23
+#define NOTE_G4 392.00
+#define NOTE_A4 440.00
+#define NOTE_B4 493.88
+#define NOTE_B0  31
+#define NOTE_C1  33
+#define NOTE_CS1 35
+#define NOTE_D1  37
+#define NOTE_DS1 39
+#define NOTE_E1  41
+#define NOTE_F1  44
+#define NOTE_FS1 46
+#define NOTE_G1  49
+#define NOTE_GS1 52
+#define NOTE_A1  55
+#define NOTE_AS1 58
+#define NOTE_B1  62
+#define NOTE_C2  65
+#define NOTE_CS2 69
+#define NOTE_D2  73
+#define NOTE_DS2 78
+#define NOTE_E2  82
+#define NOTE_F2  87
+#define NOTE_FS2 93
+#define NOTE_G2  98
+#define NOTE_GS2 104
+#define NOTE_A2  110
+#define NOTE_AS2 117
+#define NOTE_B2  123
+#define NOTE_C3  131
+#define NOTE_CS3 139
+#define NOTE_D3  147
+#define NOTE_DS3 156
+#define NOTE_E3  165
+#define NOTE_F3  175
+#define NOTE_FS3 185
+#define NOTE_G3  196
+#define NOTE_GS3 208
+#define NOTE_A3  220
+#define NOTE_AS3 233
+#define NOTE_B3  247
+#define NOTE_CS4 277
+#define NOTE_DS4 311
+#define NOTE_FS4 370
+#define NOTE_GS4 415
+#define NOTE_AS4 466
+#define NOTE_C5  523
+#define NOTE_CS5 554
+#define NOTE_D5  587
+#define NOTE_DS5 622
+#define NOTE_E5  659
+#define NOTE_F5  698
+#define NOTE_FS5 740
+#define NOTE_G5  784
+#define NOTE_GS5 831
+#define NOTE_A5  880
+#define NOTE_AS5 932
+#define NOTE_B5  988
+#define NOTE_C6  1047
+#define NOTE_CS6 1109
+#define NOTE_D6  1175
+#define NOTE_DS6 1245
+#define NOTE_E6  1319
+#define NOTE_F6  1397
+#define NOTE_FS6 1480
+#define NOTE_G6  1568
+#define NOTE_GS6 1661
+#define NOTE_A6  1760
+#define NOTE_AS6 1865
+#define NOTE_B6  1976
+#define NOTE_C7  2093
+#define NOTE_CS7 2217
+#define NOTE_D7  2349
+#define NOTE_DS7 2489
+#define NOTE_E7  2637
+#define NOTE_F7  2794
+#define NOTE_FS7 2960
+#define NOTE_G7  3136
+#define NOTE_GS7 3322
+#define NOTE_A7  3520
+#define NOTE_AS7 3729
+#define NOTE_B7  3951
+#define NOTE_C8  4186
+#define NOTE_CS8 4435
+#define NOTE_D8  4699
+#define NOTE_DS8 4978
+
+// Game variables
+int timer = 0;
+bool gameRunning = false;
+bool terminateMusic = false;
+bool playMusic = true;
+bool isMusicPlaying = false;
+int difficulty = 0;
+int freq = 0;
+int score = 0;
+
+// Play a tone on the speaker
+void playTone(float frequency, float duration)
+{
+    speaker.period(1.0 / frequency); // Set the period to 1ms for a frequency of 1kHz
+    speaker = 0.5; // Set the duty cycle to 50% (half of the period)
+    wait(duration);
+    speaker = 0.0; // Stop the tone by setting the duty cycle to 0
+
+}
+
+void playTone1(float frequency, float duration)
+{
+    buzzer.period(1.0 / frequency);
+    buzzer = 0.8; // Set the duty cycle to 80% for increased volume
+    wait(duration);
+    buzzer = 0.0; // Stop the tone by setting the duty cycle to 0
+}
+
+// Thread musicThread ;
+
+void backgroundMusicThread()
+{
+    while (!terminateMusic)
+    {
+        //Mario
+        playTone(NOTE_E7, 0.2); 
+        playTone(NOTE_E7, 0.2); 
+        playTone(0, 0.2); 
+        playTone(NOTE_E7, 0.2); 
+
+        playTone(0, 0.2); 
+        playTone(NOTE_C7, 0.2); 
+        playTone(NOTE_E7, 0.2); 
+        playTone(0, 0.2); 
+
+        playTone(NOTE_G7, 0.2);
+        playTone(0, 0.2); 
+        playTone(0, 0.2); 
+        playTone(0, 0.2); 
+
+        playTone(NOTE_G6, 0.2); 
+        playTone(0, 0.2); 
+        playTone(0, 0.2); 
+        playTone(0, 0.2); 
+
+        playTone(NOTE_C7, 0.2); 
+        playTone(0, 0.2); 
+        playTone(0, 0.2); 
+        playTone(NOTE_G6, 0.2); 
+
+        playTone(0, 0.2); 
+        playTone(0, 0.2); 
+        playTone(NOTE_E6, 0.2); 
+        playTone(0, 0.2); 
+
+        playTone(0, 0.2); 
+        playTone(NOTE_A6, 0.2); 
+        playTone(0, 0.2); 
+        playTone(NOTE_B6, 0.2); 
+
+        playTone(0, 0.2); 
+        playTone(NOTE_AS6, 0.2);
+        playTone(NOTE_A6, 0.2); 
+        playTone(0, 0.2); 
+
+        playTone(NOTE_G6, 0.2); 
+        playTone(NOTE_E7, 0.2); 
+        playTone(NOTE_G7, 0.2); 
+
+        playTone(NOTE_A7, 0.2); 
+        playTone(0, 0.2); 
+        playTone(NOTE_F7, 0.2); 
+        playTone(NOTE_G7, 0.2); 
+
+        playTone(0, 0.2); 
+        playTone(NOTE_E7, 0.2);
+        playTone(0, 0.2); 
+        playTone(NOTE_C7, 0.2); 
+
+        playTone(NOTE_D7, 0.2); 
+        playTone(NOTE_B6, 0.2); 
+        playTone(0, 0.3); 
+        playTone(0, 0.3); 
+
+        playTone(NOTE_C7, 0.2); 
+        playTone(0, 0.3); 
+        playTone(0, 0.3); 
+        playTone(NOTE_G6, 0.2); 
+
+        playTone(0, 0.3); 
+        playTone(0, 0.3); 
+        playTone(NOTE_E6, 0.2); 
+        playTone(0, 0.3); 
+
+        playTone(0, 0.3); 
+        playTone(NOTE_A6, 0.2); 
+        playTone(0, 0.3); 
+        playTone(NOTE_B6, 0.2);
+
+        playTone(0, 0.3); 
+        playTone(NOTE_AS6, 0.2);
+        playTone(NOTE_A6, 0.2); 
+        playTone(0, 0.3); 
+
+        playTone(NOTE_G6, 0.2); 
+        playTone(NOTE_E7, 0.2); 
+        playTone(NOTE_G7, 0.2);
+        playTone(NOTE_A7, 0.2);
+        playTone(0, 0.3); 
+        playTone(NOTE_F7, 0.2); 
+        playTone(NOTE_G7, 0.2); 
+
+        playTone(0, 0.3); 
+        playTone(NOTE_E7, 0.2); 
+        playTone(0, 0.3);
+        playTone(NOTE_C7, 0.2);
+
+        playTone(NOTE_D7, 0.2); 
+        playTone(NOTE_B6, 0.2); 
+        playTone(0, 0.3); 
+        playTone(0, 0.3); 
+
+        wait(1.0); // Add a delay between repetitions of the melody
+    }
+  
+}
+
+
+void displayDigit(int digit)
+{
+    char SegByte = SegConvert(digit % 10); // Get the 7-segment value for the units digit
+
+    // Check if the number is greater than 9
+    if (digit >= 10)
+        SegByte |= 0x80; // Set the dot segment (MSB) to indicate a value greater than 9
+    else
+        SegByte &= 0x7F; // Clear the dot segment (MSB) to indicate a value less than 10
+
+    Seg1 = SegByte; // Set the display value
+    wait_ms(200);
+}
+
+
+char SegConvert(char SegValue)
+{
+    char SegByte=0x00;
+    switch (SegValue) {                   //DP G F E D C B A
+    case 0 : SegByte = 0x3F;break;      // 0 0 1 1 1 1 1 1 binary
+    case 1 : SegByte = 0x06;break;      // 0 0 0 0 0 1 1 0 binary
+    case 2 : SegByte = 0x5B;break;      // 0 1 0 1 1 0 1 1 binary
+    case 3 : SegByte = 0x4F;break;      // 0 1 0 0 1 1 1 1 binary
+    case 4 : SegByte = 0x66;break;      // 0 1 1 0 0 1 1 0 binary
+    case 5 : SegByte = 0x6D;break;      // 0 1 1 0 1 1 0 1 binary
+    case 6 : SegByte = 0x7D;break;      // 0 1 1 1 1 1 0 1 binary
+    case 7 : SegByte = 0x07;break;      // 0 0 0 0 0 1 1 1 binary
+    case 8 : SegByte = 0x7F;break;      // 0 1 1 1 1 1 1 1 binary
+    case 9 : SegByte = 0x6F;break;      // 0 1 1 0 1 1 1 1 binary
+    }
+
+    return SegByte;
+}
+
+int main()
+{
+    lcd.cls();
+    lcd.locate(0, 10);
+    lcd.printf("Whack-A-Mole!");
+    lcd.locate(0, 20);
+    timer = 15; // Reset the timer
+    score = 0; // Reset the score counter
+    lcd.printf("Press button to start");
+    displayDigit(score);
+
+    while (true)
+    {
+        
+        if (button == 1 && !gameRunning)
+        {
+            playMusic = true;
+            terminateMusic = false;
+            Thread musicThread;
+            musicThread.start(backgroundMusicThread);
+
+            gameRunning = true;
+            timer = 15;
+            score = 0;
+            lcd.cls();
+            lcd.locate(0, 10);
+            lcd.printf("Game started!");
+
+            while (timer > 0)
+            {
+                lcd.locate(0, 10);
+                lcd.printf("Time Left: %2d s", timer);
+                timer--;
+                wait(1.0);
+
+                // Difficulty level selection
+                float potValue = potentiometer.read(); // Read the potentiometer value
+                if (potValue < 0.33)
+                {
+                    difficulty = 1;
+                    freq = 1000; // Easy level - 1s
+                }
+                else if (potValue < 0.67)
+                {
+                    difficulty = 2;
+                    freq = 500; // Medium level
+                }
+                else
+                {
+                    difficulty = 3;
+                    freq = 300; // Hard level
+                }
+
+                for (int i = 0; i < difficulty; i++)
+                {
+                    // Randomly select an LED to light up
+                    int ledNum = rand() % 4 + 1; // Generate a random number between 1 and 4
+                    switch (ledNum)
+                    {
+                        case 1:
+                            mole1.show();
+                            wait_ms(freq);
+
+                            if (joystickRight.read() == 1)
+                            {
+                                // Mole 1 hit by joystick
+                                playTone1(NOTE_C4, 0.1);
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Woohoo you hit it !!!");
+                                score++; // Increase the score by 1
+                                displayDigit(score); // Update the 7-segment display
+                            }
+                            else
+                            {
+                                // Mole 1 not hit by joystick
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Oops you missed it !!!");
+                            }
+
+                            mole1.hide();
+                            break;
+
+                        case 2:
+                            mole2.show();
+                            wait_ms(freq);
+
+                            if (joystickUp.read() == 1)
+                            {
+                                // Mole 2 hit by joystick
+                                playTone1(NOTE_D4, 0.1);
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Woohoo you hit it !!!");
+                                score++; // Increase the score by 1
+                                displayDigit(score); // Update the 7-segment display
+                            }
+                            else
+                            {
+                                // Mole 2 not hit by joystick
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Oops you missed it !!!");
+                            }
+
+                            mole2.hide();
+                            break;
+
+                        case 3:
+                            mole3.show();
+                            wait_ms(freq);
+
+                            if (joystickDown.read() == 1)
+                            {
+                                // Mole 3 hit by joystick
+                                playTone1(NOTE_E4, 0.1);
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Woohoo you hit it !!!");
+                                score++; // Increase the score by 1
+                                displayDigit(score); // Update the 7-segment display
+                            }  
+                            else
+                            {
+                                // Mole 3 not hit by joystick
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Oops you missed it !!!");
+                            }
+
+                            mole3.hide();
+                            break;
+
+                        case 4:
+                            mole4.show();
+                            wait_ms(freq);
+
+                            if (joystickLeft.read() == 1)
+                            {
+                                // Mole 4 hit by joystick
+                                playTone1(NOTE_F4, 0.1);
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Woohoo you hit it !!!");
+                                score++; // Increase the score by 1
+                                displayDigit(score); // Update the 7-segment display 
+                            }
+                            else
+                            {
+                                // Mole 4 not hit by joystick
+                                lcd.cls();
+                                lcd.locate(0, 20);
+                                lcd.printf("Oops you missed it !!!");
+                            }
+
+                            mole4.hide();
+                            break;
+                    }
+                }
+            }
+
+            playMusic = false; // Set the flag to stop playing music
+            terminateMusic = true; // Set the flag to terminate music thread
+            musicThread.join(); // Wait for the music thread to terminate
+
+            gameRunning = false;
+            lcd.cls();
+            lcd.locate(2, 15);
+            lcd.printf("Game over! Restart");
+            // delay(500);
+            score = 0;
+            displayDigit(score);
+        }
+    }
+}
+
+
